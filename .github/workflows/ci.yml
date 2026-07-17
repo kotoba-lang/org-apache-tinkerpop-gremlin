@@ -1,0 +1,76 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  nbb-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: kotoba-lang/kotobase-query
+          # Same pin as deps.edn — keep the two in lockstep.
+          ref: 25da85adf8a4c2b4108b7c3b8af4f7c46d1ef310
+          path: .deps/kotobase-query
+      - uses: actions/checkout@v4
+        with:
+          repository: kotoba-lang/kotobase
+          # Same pin as kotobase-query's own deps.edn (transitive).
+          ref: bbf57df9dde5c1869182012860129a598382e088
+          path: .deps/kotobase
+      - uses: actions/checkout@v4
+        with:
+          repository: kotoba-lang/arrangement
+          # Same pin as kotobase-query's own deps.edn (transitive).
+          ref: 591ade4db1b324fc4ec83de932888b141bd69e09
+          path: .deps/arrangement
+      - uses: actions/checkout@v4
+        with:
+          repository: kotoba-lang/prolly-tree
+          # Same pin as arrangement's own deps.edn (transitive).
+          ref: 2a5ba48a2eb11cc73b549ee75f5c1b71cc223566
+          path: .deps/prolly-tree
+      - uses: actions/checkout@v4
+        with:
+          repository: kotoba-lang/io-ipld
+          # Same pin as arrangement's own deps.edn (transitive).
+          ref: 4591764514239c4777f227a7a56d46c901e2a4a0
+          path: .deps/io-ipld
+      - uses: actions/checkout@v4
+        with:
+          repository: kotoba-lang/io-multiformats
+          # Same pin as io-ipld's own deps.edn (transitive).
+          ref: eec3ee85c458ea830be94518b9a42f4a8f1aee40
+          path: .deps/io-multiformats
+      - uses: actions/checkout@v4
+        with:
+          repository: kotoba-lang/org-ietf-cbor
+          # Same pin as io-ipld's own deps.edn (transitive).
+          ref: de18ad29102f9df150e214d756de4719c3c00d7a
+          path: .deps/org-ietf-cbor
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --global nbb
+      - run: npm install
+      - name: pure .cljc core suite (kotobase.gremlin.traversal)
+        run: nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" bin/run_tests.cljs
+      - name: GraphSON/WebSocket wire suite (.cljs-only, real cross-process sockets — see kotobase.gremlin.wire's docstring)
+        run: nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" test/kotobase/gremlin/wire_test.cljs
+
+  jvm-compat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: DeLaGuardo/setup-clojure@13.4
+        with:
+          cli: latest
+      - name: JVM compat suite (pure .cljc only — kotobase.gremlin.wire is .cljs-only and never loaded here)
+        run: clojure -M:test

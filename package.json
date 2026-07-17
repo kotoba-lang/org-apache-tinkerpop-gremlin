@@ -1,0 +1,8 @@
+{
+  "name": "org-apache-tinkerpop-gremlin",
+  "private": true,
+  "description": "org-apache-tinkerpop-gremlin -- transitive npm dep of kotoba-lang/arrangement (via kotobase-query), needed to load arrangement.core under nbb (multiformats.core's @noble/hashes/sha2.js use). Mirrors kotobase-query's / org-opencypher-cypher's package.json exactly -- see kotobase-query's own README for why io-multiformats' own vestigial \"hashes\" package.json entry is deliberately NOT mirrored here.",
+  "dependencies": {
+    "@noble/hashes": "^1.4.0"
+  }
+}
