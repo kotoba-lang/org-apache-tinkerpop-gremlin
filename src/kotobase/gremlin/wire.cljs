@@ -74,8 +74,7 @@
   (:require ["node:net" :as net]
             ["node:crypto" :as ncrypto]
             [clojure.string :as str]
-            [kotobase.gremlin.json :as json]
-            [kotobase.gremlin.traversal :as traversal]))
+            [kotobase.gremlin.envelope :as envelope]))
 
 (def ^:private ws-guid "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
@@ -168,97 +167,17 @@
       (.digest "base64")))
 
 ;; ---------------------------------------------------------- GraphSON codec
+;; Moved to kotobase.gremlin.envelope (.cljc, 2026-07-30) so a Cloudflare
+;; Worker — which is handed decoded frames by WebSocketPair and has no
+;; node:net — can host the envelope without this namespace's transport.
+;; Re-exported here unchanged: every existing caller and test keeps working.
 
-(defn- bytecode-json->edn
-  "GraphSON-approximation `args.gremlin` JSON value (a JSON array of JSON
-  arrays, e.g. `[[\"V\"] [\"hasLabel\" \"users\"] [\"values\" \"name\"]]`,
-  already JSON-parsed to EDN vectors of STRINGS by `kotobase.gremlin.json`)
-  -> `kotobase.gremlin.traversal`'s bytecode shape (vectors whose first
-  element is a KEYWORD step name, see that ns's docstring)."
-  [gremlin]
-  (when-not (sequential? gremlin)
-    (throw (ex-info "args.gremlin must be a JSON array of [step, ...args] arrays"
-                     {:gremlin/code :gremlin/malformed-request})))
-  (mapv (fn [tup]
-          (when-not (and (sequential? tup) (seq tup) (string? (first tup)))
-            (throw (ex-info (str "each args.gremlin entry must be a non-empty array whose"
-                                  " first element is a step-name string -- got " (pr-str tup))
-                             {:gremlin/code :gremlin/malformed-request})))
-          (into [(keyword (first tup))] (rest tup)))
-        gremlin))
-
-(defn- request-message->bytecode
-  "Parsed RequestMessage JSON (string keys) -> `[request-id bytecode]`, or
-  throws (`(:gremlin/code (ex-data e))` = `:gremlin/malformed-request`) for
-  anything outside the v0.1 wire subset -- see ns docstring."
-  [{:strs [requestId op args]}]
-  (when-not (string? requestId)
-    (throw (ex-info "RequestMessage missing string \"requestId\"" {:gremlin/code :gremlin/malformed-request})))
-  (when (not= "bytecode" op)
-    (throw (ex-info (str "unsupported \"op\": " (pr-str op)
-                          " -- v0.1 only supports \"op\": \"bytecode\" (no \"eval\", ADR-2607172500)")
-                     {:gremlin/code :gremlin/malformed-request})))
-  (when-not (map? args)
-    (throw (ex-info "RequestMessage missing \"args\" object" {:gremlin/code :gremlin/malformed-request})))
-  [requestId (bytecode-json->edn (get args "gremlin"))])
-
-(defn encode-request
-  "Build a GraphSON RequestMessage JSON string for `bytecode` (this repo's
-  own EDN bytecode shape, see `kotobase.gremlin.traversal` ns docstring).
-  `request-id` defaults to a timestamp-based string if omitted (test/demo
-  convenience -- real clients should supply their own unique id)."
-  ([bytecode] (encode-request bytecode (str "req-" (.now js/Date))))
-  ([bytecode request-id]
-   (json/encode {"requestId" request-id
-                 "op" "bytecode"
-                 "processor" "traversal"
-                 "args" {"gremlin" (mapv (fn [[step & args]] (into [(name step)] args)) bytecode)}})))
-
-(defn- status-code->message [code]
-  (case code 200 "" ""))
-
-(defn encode-response
-  "Build a GraphSON ResponseMessage JSON string. `result` -> `{:data [...]}`
-  on success (`code` 200); `error` -> `{:message \"...\"}` on failure (`code`
-  597 or 598, see ns docstring)."
-  [request-id code {:keys [data message]}]
-  (json/encode {"requestId" request-id
-                "status" {"code" code "message" (or message (status-code->message code)) "attributes" {}}
-                "result" {"data" (if (= code 200) data nil) "meta" {}}}))
-
-(defn decode-response
-  "Parse a ResponseMessage JSON string (test/client convenience) ->
-  `{:request-id :code :message :data}`."
-  [s]
-  (let [{:strs [requestId status result]} (json/parse s)]
-    {:request-id requestId
-     :code (get status "code")
-     :message (get status "message")
-     :data (get result "data")}))
-
-;; --------------------------------------------------------------- dispatch
-
-(defn handle-request-text
-  "One incoming WebSocket text-frame payload (a GraphSON RequestMessage
-  JSON string) -> a GraphSON ResponseMessage JSON string. Pure w.r.t. `ctx`
-  (`{:store :vertex-colls :visible?}`, passed straight to
-  `kotobase.gremlin.traversal/execute`) -- no socket concepts in this fn,
-  it is unit-testable on its own (see `test/kotobase/gremlin/wire_test.cljs`)
-  without opening a real socket."
-  [ctx text]
-  (let [parsed (try (json/parse text) (catch :default _ ::parse-error))]
-    (if (= parsed ::parse-error)
-      (encode-response "" 598 {:message "malformed JSON request body"})
-      (let [request-id (get parsed "requestId" "")]
-        (try
-          (let [[request-id bytecode] (request-message->bytecode parsed)
-                data (traversal/execute ctx bytecode)]
-            (encode-response request-id 200 {:data data}))
-          (catch :default e
-            (let [ed (ex-data e)
-                  code (if (= :gremlin/malformed-request (:gremlin/code ed)) 598 597)
-                  msg (or (:gremlin/message ed) (.-message e) (str e))]
-              (encode-response request-id code {:message msg}))))))))
+(def bytecode-json->edn envelope/bytecode-json->edn)
+(def request-message->bytecode envelope/request-message->bytecode)
+(def encode-request envelope/encode-request)
+(def encode-response envelope/encode-response)
+(def decode-response envelope/decode-response)
+(def handle-request-text envelope/handle-request-text)
 
 ;; ------------------------------------------------------------------ server
 
