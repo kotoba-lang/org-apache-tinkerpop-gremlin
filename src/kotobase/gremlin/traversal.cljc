@@ -152,7 +152,26 @@
   "The full v0.1 step vocabulary -- anything else is rejected by `translate`
   with a clear, explicit error naming both what WAS given and the
   out-of-scope list this repo does not implement (ADR-2607172500)."
-  #{:V :hasLabel :has :out :in :values})
+  #{:V :hasLabel :has :out :in :values :dedup :order :limit :count})
+
+(def ^:private post-steps
+  "Steps that operate on the PROJECTED RESULTS rather than on the traversal.
+
+  They come after `.values(prop)` and are applied by `execute` to the result
+  vector, because that is what they mean: `.limit(2)` bounds the answer, not
+  the join. Pushing them into the Datalog `:where` would require the bridge
+  to have a notion of order and of a row window, which it does not.
+
+  `.order()` is bare — TinkerPop's `.by()` modulators (`.order().by('age',
+  desc)`) are out of scope, and `.order()` with no `.by()` is natural
+  ascending in TinkerPop too, so the bare form means what it means there.
+
+  `.dedup()` is accepted and is a NO-OP on this backend: the bridge's Datalog
+  `q` already has set semantics, so results arrive distinct. It is kept
+  because a Gremlin user writes it habitually and erroring would be hostile,
+  and it is documented as a no-op because claiming it collapses something
+  would misplace where the collapse happens."
+  #{:dedup :order :limit :count})
 
 (def ^:private out-of-scope-note
   "Explicitly OUT OF SCOPE for v0.1 (ADR-2607172500): full Gremlin script eval, .repeat()/variable-length paths, lambda/closure steps, mutation steps (addV/addE/drop/property), transactions, GraphBinary serialization, multi-key .values(k1,k2,...) fan-out, .hasLabel/.has OR-semantics.")
@@ -202,25 +221,53 @@
     (throw (gremlin-err :gremlin/missing-V
                          (str "bytecode must start with [:V] (g.V()) -- got "
                               (pr-str (first bytecode))))))
-  (let [last-tup (last bytecode)]
-    (doseq [tup (butlast (rest bytecode))]
-      (when (= :values (step-name tup))
-        (throw (gremlin-err :gremlin/values-not-terminal
-                             ".values(prop) is only supported as the LAST step in v0.1 -- got it mid-traversal"))))
-    (when-not (= :values (step-name last-tup))
+  ;; Split the traversal from the post-projection steps. `.values(prop)` is
+  ;; still the pivot: everything before it walks the graph, everything after
+  ;; it reshapes the answer.
+  (let [vidx (first (keep-indexed (fn [i t] (when (= :values (step-name t)) i)) bytecode))]
+    (when-not vidx
       (throw (gremlin-err :gremlin/missing-terminal-values
-                           (str "bytecode must end with exactly one [:values prop] step"
-                                " (the terminal projection step) -- got " (pr-str last-tup))))))
-  (loop [steps (rest bytecode)
+                          (str "bytecode must contain exactly one [:values prop] step"
+                               " (the projection step) -- got " (pr-str (last bytecode))))))
+    (when (some #(= :values (step-name %)) (drop (inc vidx) bytecode))
+      (throw (gremlin-err :gremlin/values-not-terminal
+                          ".values(prop) is only supported ONCE, as the projection step")))
+    (let [post (vec (drop (inc vidx) bytecode))]
+      (doseq [t post]
+        (when-not (contains? post-steps (step-name t))
+          (throw (gremlin-err :gremlin/step-after-values
+                              (str "only " (pr-str (sort post-steps)) " may follow"
+                                   " .values(prop) -- got " (pr-str t))))))
+      (doseq [t (butlast post)]
+        (when (= :count (step-name t))
+          (throw (gremlin-err :gremlin/count-not-last
+                              ".count() reduces the traversal to a number, so nothing may follow it"))))
+      (doseq [t post]
+        (let [[op & args] t
+              want (if (= :limit op) 1 0)]
+          (when (not= want (count args)) (step-arity-err op want args))))
+      (when-let [[_ n] (first (filter #(= :limit (step-name %)) post))]
+        (when-not (and (integer? n) (not (neg? n)))
+          (throw (gremlin-err :gremlin/bad-limit
+                              (str ".limit(n) expects a non-negative integer -- got " (pr-str n))))))))
+  (loop [steps (take-while #(not= :values (step-name %)) (rest bytecode))
          cur-var (var-sym 0)
          next-id 1
          where []]
     (let [tup (first steps)
           [op & args] tup]
       (cond
+        ;; The traversal steps are exhausted; project with .values(prop) and
+        ;; hand the post-projection steps to `execute`.
         (nil? tup)
-        (throw (gremlin-err :gremlin/missing-terminal-values
-                             "bytecode must end with a [:values prop] step"))
+        (let [vidx (first (keep-indexed (fn [i t] (when (= :values (step-name t)) i)) bytecode))
+              [_ prop] (nth bytecode vidx)
+              result-var (symbol (str "?r" next-id))]
+          (when (not= 2 (count (nth bytecode vidx))) (step-arity-err :values 1 (rest (nth bytecode vidx))))
+          {:query {:find [result-var]
+                   :where (conj where [cur-var (keyword (str prop)) result-var])}
+           :vertex-var cur-var
+           :post (vec (drop (inc vidx) bytecode))})
 
         (= :V op)
         (throw (gremlin-err :gremlin/duplicate-V
@@ -257,17 +304,6 @@
                          (conj [new-var (keyword edge-label) fk-var])
                          (conj [cur-var :kotobase/key fk-var])))))
 
-        (= :values op)
-        (do (when (not= 1 (count args)) (step-arity-err op 1 args))
-            (let [prop (str (first args))
-                  result-var (symbol (str "?r" next-id))]
-              ;; :values is validated as the terminal step above -- reaching
-              ;; here with steps still remaining is a translate() bug, not a
-              ;; user-facing error, so no explicit check/throw is needed.
-              {:query {:find [result-var]
-                       :where (conj where [cur-var (keyword prop) result-var])}
-               :vertex-var cur-var}))
-
         :else (unknown-step-err tup)))))
 
 ;; ----------------------------------------------------------------- execute
@@ -278,9 +314,14 @@
 
   Translates `bytecode` (via `translate`) into a `kotobase.query.bridge`
   query, materializes `:vertex-colls` from `:store`, runs the query filtered
-  by the REQUIRED `:visible?` predicate, and returns a SORTED, deduplicated
-  vector of projected `.values(prop)` results (see ns docstring's \"Result
-  semantics\" section for why this is a set, not a Gremlin bag).
+  by the REQUIRED `:visible?` predicate, and returns a SORTED vector of
+  projected `.values(prop)` results (see ns docstring's \"Result semantics\"
+  section).
+
+  Post-projection steps -- `.dedup()`, `.order()`, `.limit(n)`, `.count()` --
+  are applied here, in the order they were written, because that is what they
+  mean: `.limit(2)` bounds the answer, not the join. `.count()` reduces to a
+  one-element vector holding the number.
 
   Throws immediately (a ctx-construction bug, not a traversal error) if
   `:visible?` is missing, or if `:vertex-colls` is missing/empty (ADR-
@@ -300,6 +341,19 @@
                               " identifiers to materialize as the graph's vertices (see ns"
                               " docstring's \"Vertex collections MUST be declared explicitly\""
                               " section). Got: " (pr-str vertex-colls)))))
-  (let [{:keys [query]} (translate bytecode)
-        rows (bridge/query store vertex-colls query visible?)]
-    (vec (sort-by str (map first rows)))))
+  (let [{:keys [query post]} (translate bytecode)
+        rows (bridge/query store vertex-colls query visible?)
+        ;; Default order is by stringified value, as it always has been: the
+        ;; bridge promises none, and an unstable answer is worse than an
+        ;; arbitrary but repeatable one. An explicit .order() asks for the
+        ;; same thing, so it is a no-op rather than a second sort.
+        vals (vec (sort-by str (map first rows)))]
+    (reduce (fn [acc tup]
+              (case (step-name tup)
+                :dedup (vec (distinct acc))
+                :order (vec (sort-by str acc))
+                :limit (vec (take (second tup) acc))
+                :count [(count acc)]
+                acc))
+            vals
+            post)))

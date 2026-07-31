@@ -54,7 +54,17 @@ scope reduction (ADR-2607172500) — not a silent omission.
 | `.has(prop, value)` | `[:has prop value]` | equality filter on `prop` |
 | `.out(edgeLabel)` | `[:out edgeLabel]` | outgoing edge traversal — see "Edge convention" below |
 | `.in(edgeLabel)` | `[:in edgeLabel]` | incoming edge traversal (exact reverse of `.out`) |
-| `.values(prop)` | `[:values prop]` | projection, TERMINAL step — MUST be the last step |
+| `.values(prop)` | `[:values prop]` | projection — the pivot: traversal steps before it, result steps after |
+| `.dedup()` | `[:dedup]` | accepted, **no-op** — the bridge's Datalog `q` already has set semantics, so results arrive distinct |
+| `.order()` | `[:order]` | natural ascending (bare only — no `.by()` modulators) |
+| `.limit(n)` | `[:limit n]` | bound the answer to `n` rows |
+| `.count()` | `[:count]` | reduce to a count — MUST be last, nothing may follow it |
+
+`.dedup()`, `.order()`, `.limit(n)` and `.count()` operate on the **projected
+results**, not on the traversal, and are applied in the order written — so
+`.limit(2).count()` is 2 and `.count()` alone is the full size. Pushing them
+into the Datalog `:where` would require the bridge to have a notion of order
+and of a row window, which it does not.
 
 **Explicitly OUT OF SCOPE for v0.1** (ADR-2607172500 — rejected with a clear
 error, never silently ignored or partially executed):
