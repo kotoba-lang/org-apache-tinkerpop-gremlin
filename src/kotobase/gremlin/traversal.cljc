@@ -327,7 +327,7 @@
   `:visible?` is missing, or if `:vertex-colls` is missing/empty (ADR-
   2607050500 discipline, same as `kotobase.query.bridge`/
   `kotobase.protocols.cypher`)."
-  [{:keys [store vertex-colls visible?]} bytecode]
+  [{:keys [store vertex-colls visible?] :as ctx} bytecode]
   (when-not (fn? visible?)
     (throw (gremlin-err :gremlin/missing-visible
                          (str "kotobase.gremlin.traversal/execute requires ctx :visible? -- a"
@@ -342,7 +342,8 @@
                               " docstring's \"Vertex collections MUST be declared explicitly\""
                               " section). Got: " (pr-str vertex-colls)))))
   (let [{:keys [query post]} (translate bytecode)
-        rows (bridge/query store vertex-colls query visible?)
+        ;; db-for memoises when ctx carries a content address (ADR-2607310900 L1).
+        rows (bridge/q (bridge/db-for ctx store vertex-colls) query visible?)
         ;; Default order is by stringified value, as it always has been: the
         ;; bridge promises none, and an unstable answer is worse than an
         ;; arbitrary but repeatable one. An explicit .order() asks for the

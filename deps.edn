@@ -19,7 +19,7 @@
  ;; src dir on --classpath -- see the README's Develop/test section for the
  ;; exact command and kotobase-query's own README for why each hop is there.
  :deps {io.github.kotoba-lang/kotobase-query
-        {:git/sha "25da85adf8a4c2b4108b7c3b8af4f7c46d1ef310"}}
+        {:git/sha "a188a5e3607acb797937da5a8fb83ff7969bca3e"}}
  ;; First-class runtime is nbb/cljs (repo-wide runtime priority):
  ;;   nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" bin/run_tests.cljs
  ;;   nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" test/kotobase/gremlin/wire_test.cljs
