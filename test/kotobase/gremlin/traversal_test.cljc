@@ -34,13 +34,13 @@
 (deftest translate-rejects-bytecode-not-ending-with-values
   (is (thrown-with-msg?
        #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
-       #"must end with exactly one \[:values"
+       #"must contain exactly one \[:values"
        (traversal/translate [[:V] [:hasLabel "users"]]))))
 
 (deftest translate-rejects-values-mid-traversal
   (is (thrown-with-msg?
        #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
-       #"only supported as the LAST step"
+       #"may follow .values"
        (traversal/translate [[:V] [:values "name"] [:hasLabel "users"]]))))
 
 ;; ------------------------------------------------------------------ execute
@@ -147,3 +147,53 @@
          (traversal/execute
           {:store (fixture-store) :vertex-colls ["users"] :visible? everything}
           [[:V] [:eval "g.V().values('name')"] [:values "name"]])))))
+
+;; --- post-projection steps: dedup / order / limit / count ------------------
+
+(deftest post-steps-translate-into-post-not-into-where
+  (testing "they bound or reshape the ANSWER, not the join — pushing them into
+            the Datalog :where would need the bridge to have a notion of order
+            and of a row window, which it does not"
+    (let [t (traversal/translate [[:V] [:hasLabel "users"] [:values "name"]
+                                  [:dedup] [:order] [:limit 2]])]
+      (is (= [[:dedup] [:order] [:limit 2]] (:post t)))
+      (is (= 1 (count (:find (:query t))))))))
+
+(deftest limit-and-count-run-end-to-end
+  (let [ctx {:store (fixture-store) :vertex-colls ["users"] :visible? everything}
+        run #(traversal/execute ctx %)]
+    (is (= ["Alice" "Bob" "Carol" "Dave"] (run [[:V] [:hasLabel "users"] [:values "name"]])))
+    (is (= ["Alice" "Bob"] (run [[:V] [:hasLabel "users"] [:values "name"] [:limit 2]])))
+    (is (= [4] (run [[:V] [:hasLabel "users"] [:values "name"] [:count]])))
+    (testing "count after limit counts the limited set, in written order"
+      (is (= [2] (run [[:V] [:hasLabel "users"] [:values "name"] [:limit 2] [:count]]))))))
+
+(deftest dedup-is-identity-because-results-are-already-a-set
+  (testing "the bridge's Datalog q has SET semantics, so four users with two
+            distinct roles already project to two values before execute sees
+            them. .dedup() is accepted and is a no-op — a Gremlin user writes
+            it habitually and it should not error, but claiming it collapses
+            anything here would be a lie about where the collapse happens"
+    (let [ctx {:store (fixture-store) :vertex-colls ["users"] :visible? everything}
+          bare (traversal/execute ctx [[:V] [:hasLabel "users"] [:values "role"]])
+          deduped (traversal/execute ctx [[:V] [:hasLabel "users"] [:values "role"] [:dedup]])]
+      (is (= ["admin" "user"] bare) "already distinct without .dedup()")
+      (is (= bare deduped)))))
+
+(deftest count-must-be-last
+  (is (thrown-with-msg? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+                        #"nothing may follow it"
+                        (traversal/translate [[:V] [:hasLabel "users"] [:values "name"]
+                                              [:count] [:limit 1]]))))
+
+(deftest limit-rejects-nonsense-counts
+  (doseq [n [-1 1.5 "2"]]
+    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+                 (traversal/translate [[:V] [:hasLabel "users"] [:values "name"] [:limit n]]))
+        (pr-str n))))
+
+(deftest post-steps-take-no-args-except-limit
+  (doseq [t [[:dedup "x"] [:order "desc"] [:count 1]]]
+    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+                 (traversal/translate [[:V] [:hasLabel "users"] [:values "name"] t]))
+        (pr-str t))))
