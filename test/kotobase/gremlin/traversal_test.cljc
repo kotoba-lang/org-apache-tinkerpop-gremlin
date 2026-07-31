@@ -197,3 +197,27 @@
     (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
                  (traversal/translate [[:V] [:hasLabel "users"] [:values "name"] t]))
         (pr-str t))))
+
+;; --- .hasNot(key) ----------------------------------------------------------
+
+(deftest hasNot-finds-vertices-missing-the-property
+  (testing "Dave is the fixture user with no :works_at — the case .out() drops
+            silently and nothing could previously ASK about"
+    (let [ctx {:store (fixture-store) :vertex-colls ["users"] :visible? everything}]
+      (is (= ["Dave"]
+             (traversal/execute ctx [[:V] [:hasLabel "users"] [:hasNot "worksAt"] [:values "name"]])))
+      (is (= ["Alice" "Bob" "Carol" "Dave"]
+             (traversal/execute ctx [[:V] [:hasLabel "users"] [:values "name"]]))
+          "and everyone is still there without it"))))
+
+(deftest hasNot-translates-to-a-datalog-not-clause
+  (let [t (traversal/translate [[:V] [:hasLabel "users"] [:hasNot "worksAt"] [:values "name"]])
+        nots (filter #(and (seq? %) (= 'not (first %))) (:where (:query t)))]
+    (is (= 1 (count nots)))
+    (is (= '_ (last (second (first nots)))) "wildcard value — asks presence, not equality")))
+
+(deftest hasNot-takes-exactly-one-argument
+  (doseq [t [[:hasNot] [:hasNot "a" "b"]]]
+    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+                 (traversal/translate [[:V] [:hasLabel "users"] t [:values "name"]]))
+        (pr-str t))))
