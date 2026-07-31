@@ -152,7 +152,7 @@
   "The full v0.1 step vocabulary -- anything else is rejected by `translate`
   with a clear, explicit error naming both what WAS given and the
   out-of-scope list this repo does not implement (ADR-2607172500)."
-  #{:V :hasLabel :has :out :in :values :dedup :order :limit :count})
+  #{:V :hasLabel :has :hasNot :out :in :values :dedup :order :limit :count})
 
 (def ^:private post-steps
   "Steps that operate on the PROJECTED RESULTS rather than on the traversal.
@@ -283,6 +283,16 @@
             (let [[prop v] args]
               (recur (rest steps) cur-var next-id
                      (conj where [cur-var (keyword (str prop)) v]))))
+
+        ;; `.hasNot(key)` -- the vertex must NOT carry the property at all.
+        ;; datalog's `not` clause is the primitive: it drops a binding iff the
+        ;; fully-substituted pattern has any visible match, so a wildcard value
+        ;; asks exactly "is this attribute present". Distinct from
+        ;; `.has(key, nil)`, which would ask for a stored nil.
+        (= :hasNot op)
+        (do (when (not= 1 (count args)) (step-arity-err op 1 args))
+            (recur (rest steps) cur-var next-id
+                   (conj where (list 'not [cur-var (keyword (str (first args))) '_]))))
 
         (= :out op)
         (do (when (not= 1 (count args)) (step-arity-err op 1 args))
