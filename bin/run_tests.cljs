@@ -7,9 +7,7 @@
 ;; at the SHA pinned in deps.edn (kotobase-query) or transitively in
 ;; kotobase-query's / arrangement's own deps.edn (kotobase, arrangement,
 ;; prolly-tree, io-ipld, io-multiformats, org-ietf-cbor) — see deps.edn's
-;; comment. CI pins every one of them to the same SHAs. `npm install` this
-;; repo's package.json first (transitive @noble/hashes dep, see
-;; package.json comment).
+;; comment. CI pins every one of them to the same SHAs.
 ;;
 ;; This runs ONLY the pure .cljc CORE suite (kotobase.gremlin.traversal-test
 ;; — zero sockets, zero I/O beyond the injected IStore). The WebSocket/
