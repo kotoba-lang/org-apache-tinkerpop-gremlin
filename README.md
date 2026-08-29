@@ -188,13 +188,10 @@ not a `.order()` guarantee — v0.1 has no `.order()` step).
 ## Develop / test
 
 First-class runtime is nbb/cljs (repo-wide runtime priority: kotoba wasm >
-clojurewasm > cljs > nbb > jvm/bb). `npm install` this repo's
-`package.json` first (transitive `@noble/hashes` dep, see that file's
-comment), then clone every transitive dep listed in `deps.edn`'s comment
-into `.deps/<name>` at the pinned SHA:
+clojurewasm > cljs > nbb > jvm/bb). Clone every transitive dep listed in
+`deps.edn`'s comment into `.deps/<name>` at the pinned SHA:
 
 ```bash
-npm install
 nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" \
   bin/run_tests.cljs
 # real cross-process WebSocket/GraphSON demo (spawns a second nbb OS process):
