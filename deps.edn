@@ -18,7 +18,12 @@
  ;; bin/run_tests.cljs / CI clone every transitive dep by hand and list every
  ;; src dir on --classpath -- see the README's Develop/test section for the
  ;; exact command and kotobase-query's own README for why each hop is there.
- :deps {io.github.kotoba-lang/kotobase-query
+ :deps {
+        ;; kotoba.lang.text, not clojure.string. Pinned as an explicit floor:
+        ;; tools.deps takes the NEWEST sha it is shown, so without a floor here
+        ;; this repo silently rides whatever a sibling happens to name.
+        io.github.kotoba-lang/text {:git/sha "73bdb13ae7a3d004b44bca08be03a3191157a38f"}
+       io.github.kotoba-lang/kotobase-query
         {:git/sha "a188a5e3607acb797937da5a8fb83ff7969bca3e"}}
  ;; First-class runtime is nbb/cljs (repo-wide runtime priority):
  ;;   nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" bin/run_tests.cljs
