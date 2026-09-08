@@ -14,7 +14,7 @@
   wire data, not code; `kotobase.gremlin.wire` does its own explicit
   string-key -> keyword-step translation where needed (bytecode step
   names)."
-  (:require [clojure.string :as str]))
+  (:require [kotoba.lang.text :as str]))
 
 ;; ---------------------------------------------------------------- encode
 
