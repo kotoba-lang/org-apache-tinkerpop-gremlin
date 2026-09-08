@@ -73,7 +73,7 @@
   `{}` in v0.1 (no `x` pagination / bulk-result metadata)."
   (:require ["node:net" :as net]
             ["node:crypto" :as ncrypto]
-            [clojure.string :as str]
+            [kotoba.lang.text :as str]
             [kotobase.gremlin.envelope :as envelope]))
 
 (def ^:private ws-guid "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
@@ -155,7 +155,7 @@
   (into {}
         (keep (fn [line]
                 (when-let [idx (str/index-of line ":")]
-                  [(str/lower-case (str/trim (subs line 0 idx)))
+                  [(str/lower (str/trim (subs line 0 idx)))
                    (str/trim (subs line (inc idx)))])))
         (rest (str/split header-text #"\r\n"))))
 

@@ -43,7 +43,7 @@
   (:require ["node:child_process" :as cp]
             ["node:net" :as net]
             ["node:crypto" :as ncrypto]
-            [clojure.string :as str]
+            [kotoba.lang.text :as str]
             [promesa.core :as p]
             [kotobase.gremlin.json :as json]
             [kotobase.gremlin.wire :as wire]))
