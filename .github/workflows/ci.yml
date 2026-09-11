@@ -57,9 +57,9 @@ jobs:
       - run: npm install --global nbb
       - run: npm install
       - name: pure .cljc core suite (kotobase.gremlin.traversal)
-        run: nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" bin/run_tests.cljs
+        run: nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" bin/run_tests.cljk
       - name: GraphSON/WebSocket wire suite (.cljs-only, real cross-process sockets — see kotobase.gremlin.wire's docstring)
-        run: nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" test/kotobase/gremlin/wire_test.cljs
+        run: nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" test/kotobase/gremlin/wire_test.cljk
 
   jvm-compat:
     runs-on: ubuntu-latest
