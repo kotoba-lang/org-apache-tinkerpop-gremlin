@@ -14,7 +14,7 @@
 ;; entrypoint).
 ;;
 ;; Usage:
-;;   nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" \
+;;   kbb --backend sci --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" \
 ;;     bin/gremlin_server.cljk listen --port 8901
 ;;   ;; -> starts a long-running Gremlin WebSocket server on
 ;;   ;;    127.0.0.1:<port>. Prints "gremlin_server listening on port

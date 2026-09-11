@@ -192,10 +192,10 @@ clojurewasm > cljs > nbb > jvm/bb). Clone every transitive dep listed in
 `deps.edn`'s comment into `.deps/<name>` at the pinned SHA:
 
 ```bash
-nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" \
+kbb --backend sci --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" \
   bin/run_tests.cljk
 # real cross-process WebSocket/GraphSON demo (spawns a second nbb OS process):
-nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" \
+kbb --backend sci --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" \
   test/kotobase/gremlin/wire_test.cljk
 ```
 
@@ -203,7 +203,7 @@ nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arra
 `.cljc` — `kotobase.gremlin.wire` is `.cljs`-only and never loaded there):
 
 ```bash
-clojure -M:test
+kbb -M:test
 ```
 
 ## References

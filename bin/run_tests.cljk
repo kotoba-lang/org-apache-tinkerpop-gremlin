@@ -1,7 +1,7 @@
 ;; nbb test runner — first-class runtime per repo rule (kotoba wasm >
 ;; clojurewasm > cljs > nbb > (jvm/bb)). Run from the repo root:
 ;;
-;;   nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" bin/run_tests.cljk
+;;   kbb --backend sci --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" bin/run_tests.cljk
 ;;
 ;; where every .deps/<name> is a checkout of the matching kotoba-lang repo
 ;; at the SHA pinned in deps.edn (kotobase-query) or transitively in
@@ -17,7 +17,7 @@
 ;; cross-process demo (test/kotobase/gremlin/wire_test.cljk) spawns a
 ;; second `nbb` OS process and is slower; run it directly:
 ;;
-;;   nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" test/kotobase/gremlin/wire_test.cljk
+;;   kbb --backend sci --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" test/kotobase/gremlin/wire_test.cljk
 ;;
 ;; CI (.github/workflows/ci.yml) runs both steps.
 (ns run-tests
