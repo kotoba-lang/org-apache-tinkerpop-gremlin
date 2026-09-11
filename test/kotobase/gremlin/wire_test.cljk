@@ -36,7 +36,7 @@
 ;; Prints PASS/FAIL per scenario, a final "RESULT: N/M scenarios passed"
 ;; line, exits 0 iff all passed. Run from this repo's root:
 ;;
-;;   nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" \
+;;   kbb --backend sci --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" \
 ;;     test/kotobase/gremlin/wire_test.cljk
 
 (ns kotobase.gremlin.wire-test
