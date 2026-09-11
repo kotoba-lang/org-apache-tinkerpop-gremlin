@@ -4,10 +4,10 @@
 ;; own `bin/nostr_relay.cljs` sets for this workspace's other hand-rolled
 ;; WebSocket transports). Serves a fixed, hardcoded fixture dataset (two
 ;; collections, "users"/"departments", the exact same fixture
-;; `test/kotobase/gremlin/traversal_test.cljc` uses) out of a fresh
+;; `test/kotobase/gremlin/traversal_test.cljk` uses) out of a fresh
 ;; in-memory `kotobase.local` store every time it starts. Good for
 ;; exercising the real WebSocket transport by hand or from the real
-;; cross-process E2E test (`test/kotobase/gremlin/wire_test.cljs`, which
+;; cross-process E2E test (`test/kotobase/gremlin/wire_test.cljk`, which
 ;; spawns this file as a real second OS process) — NOT for running on the
 ;; open internet, and NOT a general graph-loading tool (no way to load
 ;; arbitrary data from the CLI — out of scope for this repo's v0.1 demo
@@ -15,7 +15,7 @@
 ;;
 ;; Usage:
 ;;   nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" \
-;;     bin/gremlin_server.cljs listen --port 8901
+;;     bin/gremlin_server.cljk listen --port 8901
 ;;   ;; -> starts a long-running Gremlin WebSocket server on
 ;;   ;;    127.0.0.1:<port>. Prints "gremlin_server listening on port
 ;;   ;;    <port>" once bound, then stays alive until killed.
@@ -25,7 +25,7 @@
             [kotobase.gremlin.wire :as wire]))
 
 (defn- fixture-store
-  "Same fixture shape as `test/kotobase/gremlin/traversal_test.cljc`'s own
+  "Same fixture shape as `test/kotobase/gremlin/traversal_test.cljk`'s own
   `fixture-store` -- kept as a literal duplicate here (not a shared require)
   so this demo entrypoint has no test-namespace dependency at runtime."
   []

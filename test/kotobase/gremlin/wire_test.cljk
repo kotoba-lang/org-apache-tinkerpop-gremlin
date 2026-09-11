@@ -3,7 +3,7 @@
 ;; test/nostr/relay_transport_test.cljs and org-ietf-sftp's
 ;; test/kotobase/sftp/transport/ssh_demo.cljs precedent: **a REAL,
 ;; cross-process demo** — spawns an actual second `nbb` OS process
-;; (bin/gremlin_server.cljs, found on --classpath's `bin/`), connects to its
+;; (bin/gremlin_server.cljk, found on --classpath's `bin/`), connects to its
 ;; real bound TCP port from THIS process (acting as the WebSocket client —
 ;; this test file's own minimal WS client, built on node:net + node:crypto,
 ;; same zero-npm-dependency discipline as the server, and it deliberately
@@ -37,7 +37,7 @@
 ;; line, exits 0 iff all passed. Run from this repo's root:
 ;;
 ;;   nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" \
-;;     test/kotobase/gremlin/wire_test.cljs
+;;     test/kotobase/gremlin/wire_test.cljk
 
 (ns kotobase.gremlin.wire-test
   (:require ["node:child_process" :as cp]
@@ -177,10 +177,10 @@
 
 (defn run-demo []
   (println "\n--- kotobase.gremlin.wire real cross-process demo ---")
-  (println "  spawning a second `nbb` OS process running bin/gremlin_server.cljs listen --port"
+  (println "  spawning a second `nbb` OS process running bin/gremlin_server.cljk listen --port"
             demo-port "...")
   (let [err-chunks (atom [])
-        child (cp/spawn "nbb" #js ["--classpath" classpath "bin/gremlin_server.cljs" "listen"
+        child (cp/spawn "nbb" #js ["--classpath" classpath "bin/gremlin_server.cljk" "listen"
                                     "--port" (str demo-port)]
                          #js {:cwd (js/process.cwd)})]
     (.on (.-stderr child) "data" (fn [chunk] (swap! err-chunks conj (str chunk))))

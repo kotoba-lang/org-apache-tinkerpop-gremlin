@@ -193,10 +193,10 @@ clojurewasm > cljs > nbb > jvm/bb). Clone every transitive dep listed in
 
 ```bash
 nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" \
-  bin/run_tests.cljs
+  bin/run_tests.cljk
 # real cross-process WebSocket/GraphSON demo (spawns a second nbb OS process):
 nbb --classpath "src:test:.deps/kotobase-query/src:.deps/kotobase/src:.deps/arrangement/src:.deps/prolly-tree/src:.deps/io-ipld/src:.deps/io-multiformats/src:.deps/org-ietf-cbor/src" \
-  test/kotobase/gremlin/wire_test.cljs
+  test/kotobase/gremlin/wire_test.cljk
 ```
 
 `deps.edn`'s `:test` alias is the JVM `:clj` COMPAT suite only (pure
