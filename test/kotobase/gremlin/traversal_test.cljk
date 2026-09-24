@@ -1,5 +1,5 @@
 (ns kotobase.gremlin.traversal-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [kotobase.local :as local]
             [kotobase.store :as st]
             [kotobase.gremlin.traversal :as traversal]))
